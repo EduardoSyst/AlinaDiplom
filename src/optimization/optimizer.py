@@ -29,18 +29,16 @@ def run_multiple_simulations(
     # Получение количества прогонов (по умолчанию 1)
     num_runs = config['simulation']['optimization'].get('num_runs', 1)
     
-    if num_runs > 1:
-        logger.info(f"Running {len(intensity_values)} intensity values × {num_runs} runs each = {len(intensity_values) * num_runs} total simulations...")
-    else:
-        logger.info(f"Running {len(intensity_values)} simulations...")
+    logger.info(f"Running {len(intensity_values)} simulations...")
     
     results = []
     
     for i, intensity in enumerate(intensity_values, 1):
-        logger.info(f"Testing intensity {i}/{len(intensity_values)}: {intensity:.2f} buses/hour")
+        # Вывод прогресса через print (не через логгер)
+        print(f"  [{i}/{len(intensity_values)}] Testing intensity: {intensity:.2f} buses/hour")
         
         if num_runs > 1:
-            logger.debug(f"  Running {num_runs} simulations...")
+            logger.debug(f"  Running {num_runs} simulations...")  # ← debug вместо info
         
         # Списки для сбора метрик по всем прогонам
         all_metrics = {
