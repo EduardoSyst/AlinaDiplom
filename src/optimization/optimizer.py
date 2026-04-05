@@ -40,7 +40,7 @@ def run_multiple_simulations(
         logger.info(f"Testing intensity {i}/{len(intensity_values)}: {intensity:.2f} buses/hour")
         
         if num_runs > 1:
-            logger.info(f"  Running {num_runs} simulations...")
+            logger.debug(f"  Running {num_runs} simulations...")
         
         # Списки для сбора метрик по всем прогонам
         all_metrics = {
@@ -96,7 +96,7 @@ def run_multiple_simulations(
             avg_metrics['passengers_served_std'] = np.std(all_metrics['total_passengers_served'])
             avg_metrics['buses_released_std'] = np.std(all_metrics['total_buses_released'])
             
-            logger.info(
+            logger.debug(
                 f"  Result (avg of {num_runs} runs): "
                 f"profit={avg_metrics['profit']:.0f}±{avg_metrics['profit_std']:.0f}, "
                 f"buses={avg_metrics['total_buses_released']:.1f}, "
@@ -116,7 +116,7 @@ def run_multiple_simulations(
                 'bus_loads': all_metrics['bus_loads']
             }
             
-            logger.info(
+            logger.debug(
                 f"  Result: profit={avg_metrics['profit']:.0f}, "
                 f"buses={avg_metrics['total_buses_released']}, "
                 f"served={avg_metrics['total_passengers_served']}"

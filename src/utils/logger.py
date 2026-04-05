@@ -6,7 +6,12 @@ import sys
 from typing import Optional
 
 
-def setup_logger(name: Optional[str] = None, debug_mode: bool = False, log_file: Optional[str] = None) -> logging.Logger:
+def setup_logger(
+    name: Optional[str] = None, 
+    debug_mode: bool = False, 
+    log_file: Optional[str] = None,
+    console_logging: bool = True  # ← НОВЫЙ ПАРАМЕТР
+) -> logging.Logger:
     """
     Настройка логгера
     
@@ -14,6 +19,7 @@ def setup_logger(name: Optional[str] = None, debug_mode: bool = False, log_file:
         name: имя логгера (если None - настраивается корневой логгер)
         debug_mode: если True, выводить отладочную информацию
         log_file: путь к файлу лога (опционально)
+        console_logging: если False, отключить вывод логов в консоль (только в файл)
         
     Returns:
         Настроенный логгер
@@ -35,11 +41,12 @@ def setup_logger(name: Optional[str] = None, debug_mode: bool = False, log_file:
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     
-    # Консольный обработчик
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG if debug_mode else logging.INFO)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
+    # Консольный обработчик (опционально)
+    if console_logging:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.DEBUG if debug_mode else logging.INFO)
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
     
     # Файловый обработчик (опционально)
     if log_file:
@@ -49,6 +56,7 @@ def setup_logger(name: Optional[str] = None, debug_mode: bool = False, log_file:
         logger.addHandler(file_handler)
     
     return logger
+
 
 def get_logger(name: str) -> logging.Logger:
     """

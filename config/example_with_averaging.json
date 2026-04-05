@@ -8,7 +8,8 @@
       "step": 2.0,
       "num_runs": 10
     },
-    "debug_mode": false
+    "debug_mode": false,
+    "console_logging": false
   },
   "route": {
     "num_stops": 10,

@@ -442,7 +442,9 @@ class Simulation:
     
     def _finalize_simulation(self):
         """Финализация симуляции и расчет итоговых метрик"""
-        self.logger.info("Simulation completed")
+        logger = get_logger(__name__)
+
+        logger.debug("Simulation completed")
         
         # Расчет дополнительных метрик
         if self.metrics['wait_times']:
@@ -486,10 +488,10 @@ class Simulation:
             self.metrics['lost_passenger_percentage'] = 0.0
         
         # Вывод итоговых метрик
-        self.logger.info(f"Total buses released: {self.metrics['total_buses_released']}")
-        self.logger.info(f"Total passengers served: {self.metrics['total_passengers_served']}")
-        self.logger.info(f"Total passengers lost: {self.metrics['total_passengers_lost']}")
-        self.logger.info(f"Average wait time: {self.metrics['avg_wait_time']:.2f} minutes")
-        self.logger.info(f"Average trip duration: {self.metrics['avg_trip_duration']:.2f} minutes")
-        self.logger.info(f"Average bus load: {self.metrics['avg_bus_load']:.2f}")
-        self.logger.info(f"Profit: {self.metrics['profit']:.2f}")
+        self.logger.debug(f"Total buses released: {self.metrics['total_buses_released']}")
+        self.logger.debug(f"Total passengers served: {self.metrics['total_passengers_served']}")
+        self.logger.debug(f"Total passengers lost: {self.metrics['total_passengers_lost']}")
+        self.logger.debug(f"Average wait time: {self.metrics['avg_wait_time']:.2f} minutes")
+        self.logger.debug(f"Average trip duration: {self.metrics['avg_trip_duration']:.2f} minutes")
+        self.logger.debug(f"Average bus load: {self.metrics['avg_bus_load']:.2f}")
+        self.logger.debug(f"Profit: {self.metrics['profit']:.2f}")

@@ -52,6 +52,12 @@ def parse_arguments():
         action='store_true',
         help='Не сохранять результаты в файлы'
     )
+
+    parser.add_argument(
+        '--no-console-logs',
+        action='store_true',
+        help='Отключить вывод логов от логгера в консоль (логи только в файл)'
+    )
     
     return parser.parse_args()
 
@@ -115,7 +121,13 @@ def main():
         log_dir,
         f"simulation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
     )
-    setup_logger(None, debug_mode=debug_mode, log_file=log_file)
+
+    # Логи в консоль: по умолчанию включено, можно отключить через аргумент или конфиг
+    console_logging = not args.no_console_logs
+    if 'console_logging' in config['simulation']:
+        console_logging = config['simulation']['console_logging']
+
+    setup_logger(None, debug_mode=debug_mode, log_file=log_file, console_logging=console_logging)
     
     # Вывод информации о конфигурации
     print_config_summary(config)
