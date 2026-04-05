@@ -1,0 +1,28 @@
+{
+  "simulation": {
+    "simulation_time": 480,
+    "max_wait_time": 60,
+    "optimization": {
+      "min_intensity": 5,
+      "max_intensity": 60,
+      "step": 1.0
+    },
+    "debug_mode": false
+  },
+  "route": {
+    "num_stops": 10,
+    "travel_time_between_stops": 3,
+    "bus_capacity": 16
+  },
+  "passenger_flow": {
+    "lambda_arrival": [0.5, 0.8, 1.0, 0.9, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2],
+    "lambda_exit": [0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 1.2, 1.8, 2.5, 5.0]
+  },
+  "economics": {
+    "ticket_price": 50.0,
+    "bus_cost_per_route": 300.0
+  },
+  "bus_release": {
+    "release_time_std": 2.0
+  }
+}
