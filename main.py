@@ -1,14 +1,13 @@
 """
-Точка входа в программу
+Точка входа в программу (должен находиться в КОРНЕ проекта)
 """
 import argparse
-import json
 import os
 from datetime import datetime
 
-from utils import load_config, setup_logger
-from optimization import optimize_bus_intensity, save_optimization_results
-from visualization import (
+from src.utils import load_config, setup_logger
+from src.optimization import optimize_bus_intensity, save_optimization_results
+from src.visualization import (
     print_optimization_results,
     save_all_plots
 )
