@@ -272,10 +272,11 @@ class Simulation:
         if self.debug_mode:
             self.logger.debug(
                 f"Bus {bus_id} arrived at stop {stop_id} at t={self.current_time:.2f}. "
-                f"Load: {bus.get_current_load()}/{self.bus_capacity}"
+                f"Load: {bus.get_current_load()}/{self.bus_capacity}, "
+                f"Waiting: {stop.get_waiting_count()}"
             )
         
-        # 1. Выход пассажиров из автобуса
+        # 1. ВЫХОД ПАССАЖИРОВ: случайное количество по пуассону
         exiting_count = 0
         if stop.lambda_exit > 0 and bus.get_current_load() > 0:
             exiting_count = min(
@@ -289,29 +290,18 @@ class Simulation:
                     passenger.served = True
                     passenger.exit_stop = stop_id
                     
-                    # Расчет длительности поездки
                     if passenger.boarding_time is not None:
                         trip_duration = self.current_time - passenger.boarding_time
                         self.metrics['trip_durations'].append(trip_duration)
                         self.metrics['total_passengers_served'] += 1
         
-        # 2. Посадка пассажиров в автобус
-        boarding_count = 0
+        # 2. ПОСАДКА ПАССАЖИРОВ: ВСЕ из очереди (ограничено вместимостью)
         available_seats = self.bus_capacity - bus.get_current_load()
+        boarding_count = min(available_seats, stop.get_waiting_count())
         
-        if available_seats > 0 and stop.get_waiting_count() > 0:
-            # Определяем, сколько пассажиров хочет войти
-            desired_boarding = poisson(stop.lambda_arrival)
+        if boarding_count > 0:
+            boarded_passengers = stop.passengers_waiting[:boarding_count]
             
-            # Ограничиваем доступными местами и количеством ожидающих
-            actual_boarding = min(
-                desired_boarding,
-                available_seats,
-                stop.get_waiting_count()
-            )
-            
-            # Посадка пассажиров
-            boarded_passengers = stop.passengers_waiting[:actual_boarding]
             for passenger in boarded_passengers:
                 passenger.boarding_time = self.current_time
                 passenger.boarding_stop = stop_id
@@ -320,46 +310,135 @@ class Simulation:
                 # Расчет времени ожидания
                 wait_time = self.current_time - passenger.arrival_time
                 self.metrics['wait_times'].append(wait_time)
-                
-                boarding_count += 1
             
-            # Удаление посаженных пассажиров из очереди остановки
-            stop.passengers_waiting = stop.passengers_waiting[actual_boarding:]
+            # Удаление посаженных из очереди
+            stop.passengers_waiting = stop.passengers_waiting[boarding_count:]
             stop.passengers_served += boarding_count
         
-        # Сохранение загрузки автобуса для метрик
+        # Сохранение загрузки для метрик
         self.metrics['bus_loads'].append(bus.get_current_load())
         
         if self.debug_mode:
             self.logger.debug(
                 f"Bus {bus_id} at stop {stop_id}: "
                 f"{exiting_count} exited, {boarding_count} boarded. "
-                f"New load: {bus.get_current_load()}/{self.bus_capacity}"
+                f"New load: {bus.get_current_load()}/{self.bus_capacity}, "
+                f"Remaining queue: {stop.get_waiting_count()}"
             )
         
-        # 3. Планирование движения к следующей остановке
+        # 3. Движение к следующей остановке
         if stop_id < self.num_stops:
             next_stop_id = stop_id + 1
             arrival_time = self.current_time + self.travel_time
             
-            # Автобус продолжает движение только если не превышено время симуляции
             if arrival_time <= self.simulation_time:
                 next_event = Event(
                     time=arrival_time,
                     type=EventType.BUS_ARRIVAL,
-                    data={
-                        'bus_id': bus_id,
-                        'stop_id': next_stop_id
-                    }
+                    data={'bus_id': bus_id, 'stop_id': next_stop_id}
                 )
                 heapq.heappush(self.event_queue, next_event)
         else:
-            # Автобус достиг конечной остановки
             bus.completed = True
             if self.debug_mode:
+                self.logger.debug(f"Bus {bus_id} completed route at t={self.current_time:.2f}")
+            """Обработка прибытия автобуса на остановку"""
+            bus_id = event.data['bus_id']
+            stop_id = event.data['stop_id']
+            bus = self.buses[bus_id]
+            stop = self.stops[stop_id - 1]
+            
+            if self.debug_mode:
                 self.logger.debug(
-                    f"Bus {bus_id} completed route at t={self.current_time:.2f}"
+                    f"Bus {bus_id} arrived at stop {stop_id} at t={self.current_time:.2f}. "
+                    f"Load: {bus.get_current_load()}/{self.bus_capacity}"
                 )
+            
+            # 1. Выход пассажиров из автобуса
+            exiting_count = 0
+            if stop.lambda_exit > 0 and bus.get_current_load() > 0:
+                exiting_count = min(
+                    poisson(stop.lambda_exit),
+                    bus.get_current_load()
+                )
+                
+                if exiting_count > 0:
+                    exited_passengers = bus.remove_passengers(exiting_count)
+                    for passenger in exited_passengers:
+                        passenger.served = True
+                        passenger.exit_stop = stop_id
+                        
+                        # Расчет длительности поездки
+                        if passenger.boarding_time is not None:
+                            trip_duration = self.current_time - passenger.boarding_time
+                            self.metrics['trip_durations'].append(trip_duration)
+                            self.metrics['total_passengers_served'] += 1
+            
+            # 2. Посадка пассажиров в автобус
+            boarding_count = 0
+            available_seats = self.bus_capacity - bus.get_current_load()
+            
+            if available_seats > 0 and stop.get_waiting_count() > 0:
+                # Определяем, сколько пассажиров хочет войти
+                desired_boarding = poisson(stop.lambda_arrival)
+                
+                # Ограничиваем доступными местами и количеством ожидающих
+                actual_boarding = min(
+                    desired_boarding,
+                    available_seats,
+                    stop.get_waiting_count()
+                )
+                
+                # Посадка пассажиров
+                boarded_passengers = stop.passengers_waiting[:actual_boarding]
+                for passenger in boarded_passengers:
+                    passenger.boarding_time = self.current_time
+                    passenger.boarding_stop = stop_id
+                    bus.add_passenger(passenger, self.current_time)
+                    
+                    # Расчет времени ожидания
+                    wait_time = self.current_time - passenger.arrival_time
+                    self.metrics['wait_times'].append(wait_time)
+                    
+                    boarding_count += 1
+                
+                # Удаление посаженных пассажиров из очереди остановки
+                stop.passengers_waiting = stop.passengers_waiting[actual_boarding:]
+                stop.passengers_served += boarding_count
+            
+            # Сохранение загрузки автобуса для метрик
+            self.metrics['bus_loads'].append(bus.get_current_load())
+            
+            if self.debug_mode:
+                self.logger.debug(
+                    f"Bus {bus_id} at stop {stop_id}: "
+                    f"{exiting_count} exited, {boarding_count} boarded. "
+                    f"New load: {bus.get_current_load()}/{self.bus_capacity}"
+                )
+            
+            # 3. Планирование движения к следующей остановке
+            if stop_id < self.num_stops:
+                next_stop_id = stop_id + 1
+                arrival_time = self.current_time + self.travel_time
+                
+                # Автобус продолжает движение только если не превышено время симуляции
+                if arrival_time <= self.simulation_time:
+                    next_event = Event(
+                        time=arrival_time,
+                        type=EventType.BUS_ARRIVAL,
+                        data={
+                            'bus_id': bus_id,
+                            'stop_id': next_stop_id
+                        }
+                    )
+                    heapq.heappush(self.event_queue, next_event)
+            else:
+                # Автобус достиг конечной остановки
+                bus.completed = True
+                if self.debug_mode:
+                    self.logger.debug(
+                        f"Bus {bus_id} completed route at t={self.current_time:.2f}"
+                    )
     
     def _finalize_simulation(self):
         """Финализация симуляции и расчет итоговых метрик"""
