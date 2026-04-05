@@ -6,19 +6,24 @@ import sys
 from typing import Optional
 
 
-def setup_logger(name: str, debug_mode: bool = False, log_file: Optional[str] = None) -> logging.Logger:
+def setup_logger(name: Optional[str] = None, debug_mode: bool = False, log_file: Optional[str] = None) -> logging.Logger:
     """
     Настройка логгера
     
     Args:
-        name: имя логгера
+        name: имя логгера (если None - настраивается корневой логгер)
         debug_mode: если True, выводить отладочную информацию
         log_file: путь к файлу лога (опционально)
         
     Returns:
         Настроенный логгер
     """
-    logger = logging.getLogger(name)
+    # Если имя не указано - настраиваем корневой логгер
+    if name is None:
+        logger = logging.getLogger()
+    else:
+        logger = logging.getLogger(name)
+    
     logger.setLevel(logging.DEBUG if debug_mode else logging.INFO)
     
     # Очистка существующих обработчиков
@@ -38,13 +43,12 @@ def setup_logger(name: str, debug_mode: bool = False, log_file: Optional[str] = 
     
     # Файловый обработчик (опционально)
     if log_file:
-        file_handler = logging.FileHandler(log_file)
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
     
     return logger
-
 
 def get_logger(name: str) -> logging.Logger:
     """

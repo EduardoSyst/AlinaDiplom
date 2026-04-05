@@ -108,7 +108,7 @@ def main():
         log_dir,
         f"simulation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
     )
-    setup_logger(__name__, debug_mode=debug_mode, log_file=log_file)
+    setup_logger(None, debug_mode=debug_mode, log_file=log_file)
     
     # Вывод информации о конфигурации
     print_config_summary(config)
