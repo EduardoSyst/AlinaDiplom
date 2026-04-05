@@ -333,11 +333,30 @@ def plot_planned_vs_actual_flow(
     actual_arrival = stop_stats['passengers_arrived']
     actual_exit = stop_stats['passengers_exited']
     
-    # Нормализация плановых значений для сравнения
-    # (умножаем на общее время моделирования для приблизительного сравнения)
+    # Расчёт КОРРЕКТНОГО планового выхода
     simulation_time = config['simulation']['simulation_time']
+    planned_exit_corrected = [0] * num_stops
+    
+    # Общее количество пассажиров, прибывших на остановки 1..i
+    total_arrived_so_far = [0] * num_stops
+    if num_stops > 0:
+        total_arrived_so_far[0] = planned_arrival[0] * simulation_time
+        for i in range(1, num_stops):
+            total_arrived_so_far[i] = total_arrived_so_far[i-1] + planned_arrival[i] * simulation_time
+    
+    # Общее количество пассажиров, вышедших на остановках 1..i-1
+    total_exited_so_far = [0] * num_stops
+    for i in range(1, num_stops):
+        total_exited_so_far[i] = total_exited_so_far[i-1] + actual_exit[i-1]
+    
+    # Плановый выход = min(общее прибытие - общее выход, теоретический потенциал)
+    for i in range(num_stops):
+        theoretical_capacity = planned_exit[i] * simulation_time
+        max_possible = total_arrived_so_far[i] - total_exited_so_far[i]
+        planned_exit_corrected[i] = min(max_possible, theoretical_capacity)
+    
+    # Нормализация для визуализации
     planned_arrival_norm = [lam * simulation_time for lam in planned_arrival]
-    planned_exit_norm = [lam * simulation_time for lam in planned_exit]
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
     fig.suptitle('Сравнение планового и фактического пассажиропотока', 
@@ -361,7 +380,7 @@ def plot_planned_vs_actual_flow(
     ax1.grid(True, alpha=0.3, axis='y')
     
     # График 2: Выход пассажиров
-    ax2.bar(x - width/2, planned_exit_norm, width, label='Плановый выход', 
+    ax2.bar(x - width/2, planned_exit_corrected, width, label='Плановый выход', 
             alpha=0.7, color='lightcoral')
     ax2.bar(x + width/2, actual_exit, width, label='Фактический выход', 
             alpha=0.7, color='darkred')
@@ -381,6 +400,7 @@ def plot_planned_vs_actual_flow(
         print(f"График сохранен: {save_path}")
     else:
         plt.show()
+
 
 
 def save_all_plots(

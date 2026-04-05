@@ -54,10 +54,13 @@ def run_multiple_simulations(
         }
         
         # Запуск нескольких прогонов для одной интенсивности
+        all_metrics_list = []
         for run_num in range(num_runs):
             # Создание и запуск симуляции
             sim = Simulation(config, intensity)
             metrics = sim.run()
+
+            all_metrics_list.append(metrics)
             
             # Сохранение метрик для усреднения
             all_metrics['total_passengers_served'].append(metrics['total_passengers_served'])
@@ -88,6 +91,34 @@ def run_multiple_simulations(
             avg_metrics['wait_times'] = all_metrics['wait_times']
             avg_metrics['trip_durations'] = all_metrics['trip_durations']
             avg_metrics['bus_loads'] = all_metrics['bus_loads']
+            
+            # Усреднение статистики по остановкам (НОВОЕ)
+            avg_metrics['stop_statistics'] = {
+                'passengers_arrived': np.mean(
+                    [m['stop_statistics']['passengers_arrived'] for m in all_metrics_list], 
+                    axis=0
+                ).tolist(),
+                'passengers_boarded': np.mean(
+                    [m['stop_statistics']['passengers_boarded'] for m in all_metrics_list], 
+                    axis=0
+                ).tolist(),
+                'passengers_exited': np.mean(
+                    [m['stop_statistics']['passengers_exited'] for m in all_metrics_list], 
+                    axis=0
+                ).tolist(),
+                'passengers_lost': np.mean(
+                    [m['stop_statistics']['passengers_lost'] for m in all_metrics_list], 
+                    axis=0
+                ).tolist(),
+                'avg_wait_time': np.mean(
+                    [m['stop_statistics']['avg_wait_time'] for m in all_metrics_list], 
+                    axis=0
+                ).tolist(),
+                'wait_time_counts': np.mean(
+                    [m['stop_statistics']['wait_time_counts'] for m in all_metrics_list], 
+                    axis=0
+                ).tolist()
+            }
             
             # Стандартные отклонения для надёжности
             avg_metrics['profit_std'] = np.std(all_metrics['profits'])
