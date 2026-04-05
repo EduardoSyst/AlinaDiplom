@@ -70,7 +70,15 @@ class Simulation:
             'wait_times': [],  # время ожидания каждого пассажира
             'trip_durations': [],  # длительность поездки каждого пассажира
             'bus_loads': [],  # загрузка автобусов в моменты времени
-            'passenger_events': []  # для детального лога
+            'passenger_events': [],  # для детального лога
+            'stop_statistics': {
+                'passengers_arrived': [0] * self.num_stops,      # Фактически прибыло на остановку
+                'passengers_boarded': [0] * self.num_stops,      # Фактически вошло в автобусы
+                'passengers_exited': [0] * self.num_stops,       # Фактически вышло из автобусов
+                'passengers_lost': [0] * self.num_stops,         # Ушло по таймауту
+                'avg_wait_time': [0.0] * self.num_stops,         # Среднее время ожидания
+                'wait_time_counts': [0] * self.num_stops         # Количество измерений для усреднения
+            }
         }
         
         # Счетчики
@@ -148,11 +156,12 @@ class Simulation:
         self._finalize_simulation()
         
         return self.metrics
-    
+
     def _process_passenger_arrival(self, event: Event):
         """Обработка прибытия пассажира на остановку"""
         stop_id = event.data['stop_id']
-        stop = self.stops[stop_id - 1]
+        stop_index = stop_id - 1
+        stop = self.stops[stop_index]
         
         # Создание нового пассажира
         passenger = Passenger(
@@ -164,6 +173,9 @@ class Simulation:
         
         # Добавление пассажира в очередь остановки
         stop.add_passenger(passenger)
+        
+        # Сбор статистики: пассажир прибыл на остановку
+        self.metrics['stop_statistics']['passengers_arrived'][stop_index] += 1
         
         # Запланировать следующее прибытие пассажира на эту остановку
         if stop.lambda_arrival > 0:
@@ -194,12 +206,14 @@ class Simulation:
                 f"Passenger {passenger.id} arrived at stop {stop_id} at t={self.current_time:.2f}. "
                 f"Queue size: {stop.get_waiting_count()}"
             )
-    
+
+
     def _process_passenger_leave(self, event: Event):
         """Обработка ухода пассажира из-за долгого ожидания"""
         stop_id = event.data['stop_id']
+        stop_index = stop_id - 1
         passenger_id = event.data['passenger_id']
-        stop = self.stops[stop_id - 1]
+        stop = self.stops[stop_index]
         
         # Найти пассажира в очереди
         passenger = None
@@ -214,13 +228,17 @@ class Simulation:
             stop.passengers_lost += 1
             self.metrics['total_passengers_lost'] += 1
             
+            # Сбор статистики: пассажир ушел по таймауту
+            self.metrics['stop_statistics']['passengers_lost'][stop_index] += 1
+            
             if self.debug_mode:
                 wait_time = self.current_time - passenger.arrival_time
                 self.logger.debug(
                     f"Passenger {passenger_id} left stop {stop_id} after waiting "
                     f"{wait_time:.2f} minutes"
                 )
-    
+
+
     def _process_bus_release(self, event: Event):
         """Обработка выпуска автобуса на маршрут"""
         # Создание нового автобуса
@@ -261,13 +279,15 @@ class Simulation:
                 f"Bus {bus.id} released at t={self.current_time:.2f}. "
                 f"Next release at t={next_release_time:.2f}"
             )
-    
+
+
     def _process_bus_arrival(self, event: Event):
         """Обработка прибытия автобуса на остановку"""
         bus_id = event.data['bus_id']
         stop_id = event.data['stop_id']
+        stop_index = stop_id - 1  # ← ДОБАВЛЕНО
         bus = self.buses[bus_id]
-        stop = self.stops[stop_id - 1]
+        stop = self.stops[stop_index]  # ← ИЗМЕНЕНО
         
         if self.debug_mode:
             self.logger.debug(
@@ -294,6 +314,9 @@ class Simulation:
                         trip_duration = self.current_time - passenger.boarding_time
                         self.metrics['trip_durations'].append(trip_duration)
                         self.metrics['total_passengers_served'] += 1
+                
+                # Сбор статистики: пассажиры вышли (НОВОЕ)
+                self.metrics['stop_statistics']['passengers_exited'][stop_index] += exiting_count
         
         # 2. ПОСАДКА ПАССАЖИРОВ: ВСЕ из очереди (ограничено вместимостью)
         available_seats = self.bus_capacity - bus.get_current_load()
@@ -310,6 +333,13 @@ class Simulation:
                 # Расчет времени ожидания
                 wait_time = self.current_time - passenger.arrival_time
                 self.metrics['wait_times'].append(wait_time)
+                
+                # Сбор статистики по времени ожидания для остановки (НОВОЕ)
+                self.metrics['stop_statistics']['avg_wait_time'][stop_index] += wait_time
+                self.metrics['stop_statistics']['wait_time_counts'][stop_index] += 1
+            
+            # Сбор статистики: пассажиры вошли в автобус (НОВОЕ)
+            self.metrics['stop_statistics']['passengers_boarded'][stop_index] += boarding_count
             
             # Удаление посаженных из очереди
             stop.passengers_waiting = stop.passengers_waiting[boarding_count:]
@@ -342,104 +372,8 @@ class Simulation:
             bus.completed = True
             if self.debug_mode:
                 self.logger.debug(f"Bus {bus_id} completed route at t={self.current_time:.2f}")
-            """Обработка прибытия автобуса на остановку"""
-            bus_id = event.data['bus_id']
-            stop_id = event.data['stop_id']
-            bus = self.buses[bus_id]
-            stop = self.stops[stop_id - 1]
-            
-            if self.debug_mode:
-                self.logger.debug(
-                    f"Bus {bus_id} arrived at stop {stop_id} at t={self.current_time:.2f}. "
-                    f"Load: {bus.get_current_load()}/{self.bus_capacity}"
-                )
-            
-            # 1. Выход пассажиров из автобуса
-            exiting_count = 0
-            if stop.lambda_exit > 0 and bus.get_current_load() > 0:
-                exiting_count = min(
-                    poisson(stop.lambda_exit),
-                    bus.get_current_load()
-                )
-                
-                if exiting_count > 0:
-                    exited_passengers = bus.remove_passengers(exiting_count)
-                    for passenger in exited_passengers:
-                        passenger.served = True
-                        passenger.exit_stop = stop_id
-                        
-                        # Расчет длительности поездки
-                        if passenger.boarding_time is not None:
-                            trip_duration = self.current_time - passenger.boarding_time
-                            self.metrics['trip_durations'].append(trip_duration)
-                            self.metrics['total_passengers_served'] += 1
-            
-            # 2. Посадка пассажиров в автобус
-            boarding_count = 0
-            available_seats = self.bus_capacity - bus.get_current_load()
-            
-            if available_seats > 0 and stop.get_waiting_count() > 0:
-                # Определяем, сколько пассажиров хочет войти
-                desired_boarding = poisson(stop.lambda_arrival)
-                
-                # Ограничиваем доступными местами и количеством ожидающих
-                actual_boarding = min(
-                    desired_boarding,
-                    available_seats,
-                    stop.get_waiting_count()
-                )
-                
-                # Посадка пассажиров
-                boarded_passengers = stop.passengers_waiting[:actual_boarding]
-                for passenger in boarded_passengers:
-                    passenger.boarding_time = self.current_time
-                    passenger.boarding_stop = stop_id
-                    bus.add_passenger(passenger, self.current_time)
-                    
-                    # Расчет времени ожидания
-                    wait_time = self.current_time - passenger.arrival_time
-                    self.metrics['wait_times'].append(wait_time)
-                    
-                    boarding_count += 1
-                
-                # Удаление посаженных пассажиров из очереди остановки
-                stop.passengers_waiting = stop.passengers_waiting[actual_boarding:]
-                stop.passengers_served += boarding_count
-            
-            # Сохранение загрузки автобуса для метрик
-            self.metrics['bus_loads'].append(bus.get_current_load())
-            
-            if self.debug_mode:
-                self.logger.debug(
-                    f"Bus {bus_id} at stop {stop_id}: "
-                    f"{exiting_count} exited, {boarding_count} boarded. "
-                    f"New load: {bus.get_current_load()}/{self.bus_capacity}"
-                )
-            
-            # 3. Планирование движения к следующей остановке
-            if stop_id < self.num_stops:
-                next_stop_id = stop_id + 1
-                arrival_time = self.current_time + self.travel_time
-                
-                # Автобус продолжает движение только если не превышено время симуляции
-                if arrival_time <= self.simulation_time:
-                    next_event = Event(
-                        time=arrival_time,
-                        type=EventType.BUS_ARRIVAL,
-                        data={
-                            'bus_id': bus_id,
-                            'stop_id': next_stop_id
-                        }
-                    )
-                    heapq.heappush(self.event_queue, next_event)
-            else:
-                # Автобус достиг конечной остановки
-                bus.completed = True
-                if self.debug_mode:
-                    self.logger.debug(
-                        f"Bus {bus_id} completed route at t={self.current_time:.2f}"
-                    )
-    
+
+
     def _finalize_simulation(self):
         """Финализация симуляции и расчет итоговых метрик"""
         logger = get_logger(__name__)
@@ -495,3 +429,10 @@ class Simulation:
         self.logger.debug(f"Average trip duration: {self.metrics['avg_trip_duration']:.2f} minutes")
         self.logger.debug(f"Average bus load: {self.metrics['avg_bus_load']:.2f}")
         self.logger.debug(f"Profit: {self.metrics['profit']:.2f}")
+
+        # Расчет среднего времени ожидания по остановкам
+        for i in range(self.num_stops):
+            if self.metrics['stop_statistics']['wait_time_counts'][i] > 0:
+                self.metrics['stop_statistics']['avg_wait_time'][i] /= (
+                    self.metrics['stop_statistics']['wait_time_counts'][i]
+                )

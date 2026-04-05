@@ -224,6 +224,165 @@ def plot_passenger_flow_analysis(
         plt.show()
 
 
+def plot_actual_passenger_flow(
+    metrics: Dict[str, Any],
+    config: Dict[str, Any],
+    save_path: str = None
+):
+    """
+    График ФАКТИЧЕСКОГО пассажиропотока на основе данных симуляции
+    
+    Args:
+        metrics: метрики симуляции с статистикой по остановкам
+        config: конфигурация модели
+        save_path: путь для сохранения графика
+    """
+    num_stops = config['route']['num_stops']
+    stops = list(range(1, num_stops + 1))
+    
+    # Извлечение статистики
+    stop_stats = metrics['stop_statistics']
+    passengers_arrived = stop_stats['passengers_arrived']
+    passengers_boarded = stop_stats['passengers_boarded']
+    passengers_exited = stop_stats['passengers_exited']
+    passengers_lost = stop_stats['passengers_lost']
+    avg_wait_times = stop_stats['avg_wait_time']
+    
+    # Создание фигуры с двумя подграфиками
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10))
+    fig.suptitle('Фактический пассажиропоток по остановкам', 
+                 fontsize=16, fontweight='bold')
+    
+    # Подграфик 1: Потоки пассажиров
+    width = 0.2
+    x = np.arange(len(stops))
+    
+    ax1.bar(x - 1.5*width, passengers_arrived, width, label='Прибыло на остановку', 
+            alpha=0.8, color='skyblue')
+    ax1.bar(x - 0.5*width, passengers_boarded, width, label='Вошло в автобус', 
+            alpha=0.8, color='green')
+    ax1.bar(x + 0.5*width, passengers_exited, width, label='Вышло из автобуса', 
+            alpha=0.8, color='orange')
+    ax1.bar(x + 1.5*width, passengers_lost, width, label='Ушло (таймаут)', 
+            alpha=0.8, color='red')
+    
+    ax1.set_xlabel('Номер остановки', fontsize=12, fontweight='bold')
+    ax1.set_ylabel('Количество пассажиров', fontsize=12, fontweight='bold')
+    ax1.set_title('Фактические потоки пассажиров', fontsize=14)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(stops)
+    ax1.legend(fontsize=10)
+    ax1.grid(True, alpha=0.3, axis='y')
+    
+    # Добавление аннотаций с процентом потерь
+    for i, (arrived, lost) in enumerate(zip(passengers_arrived, passengers_lost)):
+        if arrived > 0:
+            loss_pct = lost / arrived * 100
+            ax1.text(i, max(arrived, 10) + 5, f'{loss_pct:.1f}%', 
+                    ha='center', fontsize=8, color='red', fontweight='bold')
+    
+    # Подграфик 2: Среднее время ожидания
+    ax2.plot(stops, avg_wait_times, 'b-o', linewidth=2, markersize=8, label='Среднее ожидание')
+    ax2.axhline(y=config['simulation']['max_wait_time'], color='r', linestyle='--', 
+                linewidth=1.5, label=f'Макс. ожидание ({config["simulation"]["max_wait_time"]} мин)')
+    
+    ax2.set_xlabel('Номер остановки', fontsize=12, fontweight='bold')
+    ax2.set_ylabel('Время ожидания (минуты)', fontsize=12, fontweight='bold')
+    ax2.set_title('Среднее время ожидания автобуса по остановкам', fontsize=14)
+    ax2.set_xticks(stops)
+    ax2.legend(fontsize=10)
+    ax2.grid(True, alpha=0.3)
+    
+    # Добавление аннотаций с временем ожидания
+    for i, (stop, wait) in enumerate(zip(stops, avg_wait_times)):
+        if wait > 0:
+            ax2.text(stop, wait + 0.5, f'{wait:.1f}', 
+                    ha='center', fontsize=8, color='blue')
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"График сохранен: {save_path}")
+    else:
+        plt.show()
+
+
+def plot_planned_vs_actual_flow(
+    metrics: Dict[str, Any],
+    config: Dict[str, Any],
+    save_path: str = None
+):
+    """
+    Сравнение ПЛАНОВОГО (из конфигурации) и ФАКТИЧЕСКОГО пассажиропотока
+    
+    Args:
+        metrics: метрики симуляции
+        config: конфигурация модели
+        save_path: путь для сохранения графика
+    """
+    num_stops = config['route']['num_stops']
+    stops = list(range(1, num_stops + 1))
+    
+    # Плановые значения (из конфигурации)
+    planned_arrival = config['passenger_flow']['lambda_arrival']
+    planned_exit = config['passenger_flow']['lambda_exit']
+    
+    # Фактические значения (из симуляции)
+    stop_stats = metrics['stop_statistics']
+    actual_arrival = stop_stats['passengers_arrived']
+    actual_exit = stop_stats['passengers_exited']
+    
+    # Нормализация плановых значений для сравнения
+    # (умножаем на общее время моделирования для приблизительного сравнения)
+    simulation_time = config['simulation']['simulation_time']
+    planned_arrival_norm = [lam * simulation_time for lam in planned_arrival]
+    planned_exit_norm = [lam * simulation_time for lam in planned_exit]
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    fig.suptitle('Сравнение планового и фактического пассажиропотока', 
+                 fontsize=16, fontweight='bold')
+    
+    # График 1: Прибытие пассажиров
+    x = np.arange(len(stops))
+    width = 0.35
+    
+    ax1.bar(x - width/2, planned_arrival_norm, width, label='Плановое прибытие', 
+            alpha=0.7, color='lightblue')
+    ax1.bar(x + width/2, actual_arrival, width, label='Фактическое прибытие', 
+            alpha=0.7, color='darkblue')
+    
+    ax1.set_xlabel('Номер остановки', fontsize=11)
+    ax1.set_ylabel('Количество пассажиров', fontsize=11)
+    ax1.set_title('Прибытие пассажиров', fontsize=13, fontweight='bold')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(stops)
+    ax1.legend()
+    ax1.grid(True, alpha=0.3, axis='y')
+    
+    # График 2: Выход пассажиров
+    ax2.bar(x - width/2, planned_exit_norm, width, label='Плановый выход', 
+            alpha=0.7, color='lightcoral')
+    ax2.bar(x + width/2, actual_exit, width, label='Фактический выход', 
+            alpha=0.7, color='darkred')
+    
+    ax2.set_xlabel('Номер остановки', fontsize=11)
+    ax2.set_ylabel('Количество пассажиров', fontsize=11)
+    ax2.set_title('Выход пассажиров', fontsize=13, fontweight='bold')
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(stops)
+    ax2.legend()
+    ax2.grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"График сохранен: {save_path}")
+    else:
+        plt.show()
+
+
 def save_all_plots(
     optimal_result: Tuple[float, Dict[str, Any]],
     all_results: List[Tuple[float, Dict[str, Any]]],
@@ -262,5 +421,13 @@ def save_all_plots(
     # 4. Анализ пассажиропотока
     flow_path = os.path.join(output_dir, f"passenger_flow_{timestamp}.png")
     plot_passenger_flow_analysis(config, flow_path)
+
+    # 5. Фактический пассажиропоток (НОВЫЙ ГРАФИК)
+    actual_flow_path = os.path.join(output_dir, f"passenger_flow_actual_{timestamp}.png")
+    plot_actual_passenger_flow(optimal_metrics, config, actual_flow_path)
+    
+    # 6. Сравнение планового и фактического (НОВЫЙ ГРАФИК)
+    comparison_path = os.path.join(output_dir, f"passenger_flow_comparison_{timestamp}.png")
+    plot_planned_vs_actual_flow(optimal_metrics, config, comparison_path)
     
     print(f"\n✅ Все графики сохранены в директорию: {output_dir}")

@@ -143,3 +143,49 @@ def print_optimization_results(
         print(f"   • Стабильность результатов: {'Высокая' if avg_profit_std < avg_profit * 0.1 else 'Средняя' if avg_profit_std < avg_profit * 0.25 else 'Низкая'}")
     
     print()
+
+
+def print_stop_analysis(metrics: Dict[str, Any], config: Dict[str, Any], prefix: str = ""):
+    """
+    Вывод анализа по остановкам
+    
+    Args:
+        metrics: метрики симуляции
+        config: конфигурация
+        prefix: префикс для вывода
+    """
+    num_stops = config['route']['num_stops']
+    stop_stats = metrics['stop_statistics']
+    
+    print(f"\n{prefix}{'='*60}")
+    print(f"{prefix}АНАЛИЗ ПО ОСТАНОВКАМ")
+    print(f"{prefix}{'='*60}")
+    print(f"{prefix}{'Ост.':<6} {'Прибыло':<10} {'Вошло':<10} {'Вышло':<10} {'Ушло':<10} {'Потери %':<10} {'Ожидание':<10}")
+    print(f"{prefix}{'-'*60}")
+
+    print_stop_analysis(optimal_metrics, config, prefix="   ")
+    
+    total_arrived = 0
+    total_boarded = 0
+    total_exited = 0
+    total_lost = 0
+    
+    for i in range(num_stops):
+        arrived = stop_stats['passengers_arrived'][i]
+        boarded = stop_stats['passengers_boarded'][i]
+        exited = stop_stats['passengers_exited'][i]
+        lost = stop_stats['passengers_lost'][i]
+        wait = stop_stats['avg_wait_time'][i]
+        
+        total_arrived += arrived
+        total_boarded += boarded
+        total_exited += exited
+        total_lost += lost
+        
+        loss_pct = (lost / arrived * 100) if arrived > 0 else 0.0
+        
+        print(f"{prefix}{i+1:<6} {arrived:<10} {boarded:<10} {exited:<10} {lost:<10} {loss_pct:<9.1f}% {wait:<10.1f}")
+    
+    print(f"{prefix}{'-'*60}")
+    print(f"{prefix}{'ИТОГО':<6} {total_arrived:<10} {total_boarded:<10} {total_exited:<10} {total_lost:<10}")
+    print(f"{prefix}{'='*60}\n")
