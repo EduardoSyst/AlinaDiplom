@@ -3,6 +3,7 @@ from .plotter import (
     plot_profit_vs_intensity,
     plot_metrics_comparison,
     plot_bus_load_distribution,
+    plot_passenger_flow_analysis,
     save_all_plots
 )
 
@@ -12,5 +13,6 @@ __all__ = [
     'plot_profit_vs_intensity',
     'plot_metrics_comparison',
     'plot_bus_load_distribution',
+    'plot_passenger_flow_analysis',
     'save_all_plots'
 ]

@@ -1,8 +1,16 @@
 """
 Точка входа в программу (должен находиться в КОРНЕ проекта)
 """
-import argparse
+import sys
 import os
+from pathlib import Path
+
+# Добавляем корневую директорию в путь поиска модулей
+project_root = Path(__file__).parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+import argparse
 from datetime import datetime
 
 from src.utils import load_config, setup_logger
