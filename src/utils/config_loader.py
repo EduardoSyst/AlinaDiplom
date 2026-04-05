@@ -22,10 +22,10 @@ CONFIG_SCHEMA = {
                         "min_intensity": {"type": "number", "minimum": 0.1},
                         "max_intensity": {"type": "number", "minimum": 0.1},
                         "step": {"type": "number", "minimum": 0.01},
-                        "num_runs": {"type": "integer", "minimum": 1}  // ← ДОБАВЛЕНО
+                        "num_runs": {"type": "integer", "minimum": 1},
                     },
                     "required": ["min_intensity", "max_intensity", "step"]
-                }
+                },
                 "debug_mode": {"type": "boolean"}
             },
             "required": ["simulation_time", "max_wait_time", "optimization"]
