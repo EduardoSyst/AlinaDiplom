@@ -10,7 +10,6 @@ import json
 from ..core.simulation import Simulation
 from ..utils import setup_logger, get_logger
 
-
 def run_multiple_simulations(
     config: Dict[str, Any],
     intensity_values: List[float]
@@ -26,28 +25,135 @@ def run_multiple_simulations(
         Список кортежей (интенсивность, метрики)
     """
     logger = get_logger(__name__)
-    logger.info(f"Running {len(intensity_values)} simulations...")
+    
+    # Получение количества прогонов (по умолчанию 1)
+    num_runs = config['simulation']['optimization'].get('num_runs', 1)
+    
+    if num_runs > 1:
+        logger.info(f"Running {len(intensity_values)} intensity values × {num_runs} runs each = {len(intensity_values) * num_runs} total simulations...")
+    else:
+        logger.info(f"Running {len(intensity_values)} simulations...")
     
     results = []
     
     for i, intensity in enumerate(intensity_values, 1):
-        logger.info(f"Simulation {i}/{len(intensity_values)}: intensity = {intensity:.2f}")
+        logger.info(f"Testing intensity {i}/{len(intensity_values)}: {intensity:.2f} buses/hour")
         
-        # Создание и запуск симуляции
-        sim = Simulation(config, intensity)
-        metrics = sim.run()
+        if num_runs > 1:
+            logger.info(f"  Running {num_runs} simulations...")
         
-        results.append((intensity, metrics))
+        # Списки для сбора метрик по всем прогонам
+        all_metrics = {
+            'total_passengers_served': [],
+            'total_passengers_lost': [],
+            'total_buses_released': [],
+            'wait_times': [],
+            'trip_durations': [],
+            'bus_loads': [],
+            'profits': [],
+            'revenues': [],
+            'costs': []
+        }
         
-        logger.info(
-            f"Result: intensity={intensity:.2f}, "
-            f"profit={metrics['profit']:.2f}, "
-            f"buses={metrics['total_buses_released']}, "
-            f"served={metrics['total_passengers_served']}"
-        )
+        # Запуск нескольких прогонов для одной интенсивности
+        for run_num in range(num_runs):
+            # Создание и запуск симуляции
+            sim = Simulation(config, intensity)
+            metrics = sim.run()
+            
+            # Сохранение метрик для усреднения
+            all_metrics['total_passengers_served'].append(metrics['total_passengers_served'])
+            all_metrics['total_passengers_lost'].append(metrics['total_passengers_lost'])
+            all_metrics['total_buses_released'].append(metrics['total_buses_released'])
+            all_metrics['profits'].append(metrics['profit'])
+            all_metrics['revenues'].append(metrics['revenue'])
+            all_metrics['costs'].append(metrics['costs'])
+            
+            # Для списков добавляем все элементы
+            all_metrics['wait_times'].extend(metrics.get('wait_times', []))
+            all_metrics['trip_durations'].extend(metrics.get('trip_durations', []))
+            all_metrics['bus_loads'].extend(metrics.get('bus_loads', []))
+        
+        # УСРЕДНЕНИЕ МЕТРИК
+        avg_metrics = {}
+        
+        if num_runs > 1:
+            # Усреднение скалярных метрик
+            avg_metrics['total_passengers_served'] = np.mean(all_metrics['total_passengers_served'])
+            avg_metrics['total_passengers_lost'] = np.mean(all_metrics['total_passengers_lost'])
+            avg_metrics['total_buses_released'] = np.mean(all_metrics['total_buses_released'])
+            avg_metrics['profit'] = np.mean(all_metrics['profits'])
+            avg_metrics['revenue'] = np.mean(all_metrics['revenues'])
+            avg_metrics['costs'] = np.mean(all_metrics['costs'])
+            
+            # Расчёт статистики для списков
+            avg_metrics['wait_times'] = all_metrics['wait_times']
+            avg_metrics['trip_durations'] = all_metrics['trip_durations']
+            avg_metrics['bus_loads'] = all_metrics['bus_loads']
+            
+            # Стандартные отклонения для надёжности
+            avg_metrics['profit_std'] = np.std(all_metrics['profits'])
+            avg_metrics['passengers_served_std'] = np.std(all_metrics['total_passengers_served'])
+            avg_metrics['buses_released_std'] = np.std(all_metrics['total_buses_released'])
+            
+            logger.info(
+                f"  Result (avg of {num_runs} runs): "
+                f"profit={avg_metrics['profit']:.0f}±{avg_metrics['profit_std']:.0f}, "
+                f"buses={avg_metrics['total_buses_released']:.1f}, "
+                f"served={avg_metrics['total_passengers_served']:.1f}"
+            )
+        else:
+            # Если только один прогон - используем его метрики напрямую
+            avg_metrics = {
+                'total_passengers_served': all_metrics['total_passengers_served'][0],
+                'total_passengers_lost': all_metrics['total_passengers_lost'][0],
+                'total_buses_released': all_metrics['total_buses_released'][0],
+                'profit': all_metrics['profits'][0],
+                'revenue': all_metrics['revenues'][0],
+                'costs': all_metrics['costs'][0],
+                'wait_times': all_metrics['wait_times'],
+                'trip_durations': all_metrics['trip_durations'],
+                'bus_loads': all_metrics['bus_loads']
+            }
+            
+            logger.info(
+                f"  Result: profit={avg_metrics['profit']:.0f}, "
+                f"buses={avg_metrics['total_buses_released']}, "
+                f"served={avg_metrics['total_passengers_served']}"
+            )
+        
+        # Расчёт дополнительных метрик (как в _finalize_simulation)
+        if avg_metrics['wait_times']:
+            avg_metrics['avg_wait_time'] = np.mean(avg_metrics['wait_times'])
+            avg_metrics['std_wait_time'] = np.std(avg_metrics['wait_times'])
+        else:
+            avg_metrics['avg_wait_time'] = 0
+            avg_metrics['std_wait_time'] = 0
+        
+        if avg_metrics['trip_durations']:
+            avg_metrics['avg_trip_duration'] = np.mean(avg_metrics['trip_durations'])
+            avg_metrics['std_trip_duration'] = np.std(avg_metrics['trip_durations'])
+        else:
+            avg_metrics['avg_trip_duration'] = 0
+            avg_metrics['std_trip_duration'] = 0
+        
+        if avg_metrics['bus_loads']:
+            avg_metrics['avg_bus_load'] = np.mean(avg_metrics['bus_loads'])
+            avg_metrics['std_bus_load'] = np.std(avg_metrics['bus_loads'])
+        else:
+            avg_metrics['avg_bus_load'] = 0
+            avg_metrics['std_bus_load'] = 0
+        
+        # Процент потерянных пассажиров
+        total_arrivals = avg_metrics['total_passengers_served'] + avg_metrics['total_passengers_lost']
+        if total_arrivals > 0:
+            avg_metrics['lost_passenger_percentage'] = (avg_metrics['total_passengers_lost'] / total_arrivals * 100)
+        else:
+            avg_metrics['lost_passenger_percentage'] = 0.0
+        
+        results.append((intensity, avg_metrics))
     
     return results
-
 
 def optimize_bus_intensity(config: Dict[str, Any]) -> Tuple[
     Tuple[float, Dict[str, Any]],

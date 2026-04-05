@@ -3,7 +3,6 @@
 """
 from typing import Dict, Any, List, Tuple
 
-
 def print_metrics(metrics: Dict[str, Any], prefix: str = ""):
     """
     Вывод метрик в консоль
@@ -18,9 +17,9 @@ def print_metrics(metrics: Dict[str, Any], prefix: str = ""):
     
     print(f"{prefix}Общие показатели:")
     print(f"{prefix}  • Время моделирования:       {metrics.get('simulation_time', 'N/A')} минут")
-    print(f"{prefix}  • Выпущено автобусов:         {metrics['total_buses_released']}")
-    print(f"{prefix}  • Перевезено пассажиров:      {metrics['total_passengers_served']}")
-    print(f"{prefix}  • Потеряно пассажиров:         {metrics['total_passengers_lost']}")
+    print(f"{prefix}  • Выпущено автобусов:         {metrics['total_buses_released']:.1f}")
+    print(f"{prefix}  • Перевезено пассажиров:      {metrics['total_passengers_served']:.1f}")
+    print(f"{prefix}  • Потеряно пассажиров:         {metrics['total_passengers_lost']:.1f}")
     
     if 'lost_passenger_percentage' in metrics:
         print(f"{prefix}  • Процент потерянных:          {metrics['lost_passenger_percentage']:.2f}%")
@@ -29,6 +28,10 @@ def print_metrics(metrics: Dict[str, Any], prefix: str = ""):
     print(f"{prefix}  • Выручка:                     {metrics.get('revenue', 0):,.2f} руб.")
     print(f"{prefix}  • Затраты:                     {metrics.get('costs', 0):,.2f} руб.")
     print(f"{prefix}  • Прибыль:                     {metrics['profit']:,.2f} руб.")
+    
+    # Если есть стандартное отклонение прибыли (несколько прогонов)
+    if 'profit_std' in metrics:
+        print(f"{prefix}  • Прибыль (±σ):                {metrics['profit']:,.2f} ± {metrics['profit_std']:,.2f} руб.")
     
     print(f"\n{prefix}Временные характеристики:")
     if 'avg_wait_time' in metrics:
@@ -75,31 +78,52 @@ def print_optimization_results(
     
     # Вывод топ-5 результатов
     print("\n📊 ТОП-5 ЛУЧШИХ ВАРИАНТОВ:")
-    print("   " + "-" * 66)
-    print("   {:>8} {:>12} {:>10} {:>10} {:>12}".format(
-        "Интенс.", "Прибыль", "Автобусы", "Пассажиры", "Потери (%)"
-    ))
-    print("   " + "-" * 66)
+    print("   " + "-" * 80)
+    
+    # Проверяем, есть ли стандартные отклонения
+    has_std = 'profit_std' in optimal_metrics
+    
+    if has_std:
+        print("   {:>8} {:>15} {:>12} {:>10} {:>12}".format(
+            "Интенс.", "Прибыль (±σ)", "Автобусы", "Пассажиры", "Потери (%)"
+        ))
+    else:
+        print("   {:>8} {:>12} {:>10} {:>10} {:>12}".format(
+            "Интенс.", "Прибыль", "Автобусы", "Пассажиры", "Потери (%)"
+        ))
+    
+    print("   " + "-" * 80)
     
     # Сортировка по прибыли
     sorted_results = sorted(all_results, key=lambda x: x[1]['profit'], reverse=True)[:5]
     
     for intensity, metrics in sorted_results:
         losses_pct = metrics.get('lost_passenger_percentage', 0)
-        print("   {:>7.2f} {:>12,.0f} {:>10} {:>10} {:>11.2f}%".format(
-            intensity,
-            metrics['profit'],
-            metrics['total_buses_released'],
-            metrics['total_passengers_served'],
-            losses_pct
-        ))
+        
+        if has_std:
+            profit_str = f"{metrics['profit']:,.0f}±{metrics['profit_std']:,.0f}"
+            print("   {:>7.2f} {:>15} {:>12.1f} {:>10.1f} {:>11.2f}%".format(
+                intensity,
+                profit_str,
+                metrics['total_buses_released'],
+                metrics['total_passengers_served'],
+                losses_pct
+            ))
+        else:
+            print("   {:>7.2f} {:>12,.0f} {:>10.1f} {:>10.1f} {:>11.2f}%".format(
+                intensity,
+                metrics['profit'],
+                metrics['total_buses_released'],
+                metrics['total_passengers_served'],
+                losses_pct
+            ))
     
-    print("   " + "-" * 66)
+    print("   " + "-" * 80)
     
     # Анализ тенденций
     print("\n📈 АНАЛИЗ ТЕНДЕНЦИЙ:")
     
-    # Минимальная прибыль
+    # Минимальная и максимальная прибыль
     min_profit_result = min(all_results, key=lambda x: x[1]['profit'])
     max_profit_result = max(all_results, key=lambda x: x[1]['profit'])
     
@@ -111,5 +135,11 @@ def print_optimization_results(
     # Средние значения
     avg_profit = sum(m['profit'] for _, m in all_results) / len(all_results)
     print(f"   • Средняя прибыль: {avg_profit:,.0f} руб.")
+    
+    # Если есть несколько прогонов, показываем стабильность
+    if has_std:
+        avg_profit_std = sum(m.get('profit_std', 0) for _, m in all_results) / len(all_results)
+        print(f"   • Среднее отклонение прибыли: {avg_profit_std:,.0f} руб.")
+        print(f"   • Стабильность результатов: {'Высокая' if avg_profit_std < avg_profit * 0.1 else 'Средняя' if avg_profit_std < avg_profit * 0.25 else 'Низкая'}")
     
     print()

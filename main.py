@@ -80,6 +80,13 @@ def print_config_summary(config: dict):
     print(f"   • Диапазон оптимизации: {config['simulation']['optimization']['min_intensity']} - "
           f"{config['simulation']['optimization']['max_intensity']} автобусов/час")
     print(f"   • Шаг оптимизации: {config['simulation']['optimization']['step']} автобусов/час")
+    
+    # Новый параметр
+    num_runs = config['simulation']['optimization'].get('num_runs', 1)
+    if num_runs > 1:
+        print(f"   • Количество прогонов на интенсивность: {num_runs}")
+        print(f"   • Всего симуляций: {int((config['simulation']['optimization']['max_intensity'] - config['simulation']['optimization']['min_intensity']) / config['simulation']['optimization']['step'] + 1) * num_runs}")
+    
     print()
 
 
