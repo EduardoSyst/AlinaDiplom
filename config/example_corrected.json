@@ -3,11 +3,12 @@
     "simulation_time": 480,
     "max_wait_time": 30,
     "optimization": {
-      "min_intensity": 10,
-      "max_intensity": 60,
-      "step": 2.0
+      "min_intensity": 1,
+      "max_intensity": 30,
+      "step": 1.0,
+      "num_runs": 5 
     },
-    "debug_mode": true
+    "debug_mode": false
   },
   "route": {
     "num_stops": 10,
@@ -20,7 +21,7 @@
   },
   "economics": {
     "ticket_price": 40.0,
-    "bus_cost_per_route": 500.0
+    "bus_cost_per_route": 1000.0
   },
   "bus_release": {
     "release_time_std": 2.0
