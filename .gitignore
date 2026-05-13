@@ -47,3 +47,6 @@ output/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# secrets
+.secrets
