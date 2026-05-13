@@ -60,8 +60,13 @@ AlinaDiplom/
 
 | Документ | Путь | Описание |
 |----------|------|----------|
-| README.md | README.md | Главная страница проекта (описание, установка, использование) |
-| AGENTS.md | AGENTS.md | this file — структурная карта проекта для AI-агентов |
+| README | README.md | Главная страница проекта (описание, установка, использование) |
+| AGENTS.md | .ai-factory/AGENTS.md | Структурная карта проекта для AI-агентов |
+| Getting Started | docs/getting-started.md | Установка и запуск симуляции |
+| Architecture | docs/architecture.md | Структура слоёв проекта |
+| CLI Reference | docs/api.md | Команды и параметры CLI |
+| Configuration | docs/configuration.md | Параметры конфигурации JSON |
+| Optimization | docs/optimization.md | Алгоритмы оптимизации |
 | .ai-factory/DESCRIPTION.md | .ai-factory/DESCRIPTION.md | Подробное техническое описание проекта |
 
 ## Файлы контекста AI

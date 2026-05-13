@@ -40,6 +40,9 @@ Thumbs.db
 output/
 *.log
 
+# Documentation HTML (when using --web flag)
+docs-html/
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
