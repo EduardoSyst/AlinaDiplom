@@ -5,9 +5,11 @@
     "optimization": {
       "min_intensity": 2,
       "max_intensity": 20,
-      "step": 0.5
+      "step": 0.5,
+      "num_runs": 10
     },
-    "debug_mode": false
+    "debug_mode": false,
+    "console_logging": false
   },
   "route": {
     "num_stops": 10,

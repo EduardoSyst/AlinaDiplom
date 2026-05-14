@@ -5,7 +5,8 @@
     "optimization": {
       "min_intensity": 5,
       "max_intensity": 60,
-      "step": 1.0
+      "step": 1.0,
+      "num_runs": 10
     },
     "debug_mode": false
   },

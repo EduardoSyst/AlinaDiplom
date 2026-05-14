@@ -4,26 +4,27 @@
     "max_wait_time": 30,
     "optimization": {
       "min_intensity": 1,
-      "max_intensity": 30,
+      "max_intensity": 20,
       "step": 1.0,
-      "num_runs": 5 
+      "num_runs": 10
     },
-    "debug_mode": false
+    "debug_mode": false,
+    "console_logging": false
   },
   "route": {
     "num_stops": 10,
     "travel_time_between_stops": 3,
-    "bus_capacity": 20
+    "bus_capacity": 30
   },
   "passenger_flow": {
-    "lambda_arrival": [0.8, 1.2, 1.5, 1.3, 1.0, 0.9, 0.8, 0.7, 0.5],
-    "lambda_exit": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
+    "lambda_arrival": [0.5, 0.6, 1, 1.5, 1.3, 1, 0.8, 0.7, 0.5],
+    "lambda_exit": [0.3, 0.4, 1.0, 2.0, 3.0, 3.0, 5.5, 6.0, 7.5]
   },
   "economics": {
     "ticket_price": 40.0,
-    "bus_cost_per_route": 1000.0
+    "bus_cost_per_route": 500.0
   },
   "bus_release": {
-    "release_time_std": 2.0
+    "release_time_std": 5.0
   }
 }
