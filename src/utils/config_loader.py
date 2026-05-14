@@ -113,13 +113,13 @@ def load_config(config_path: str) -> Dict[str, Any]:
     if len(lambda_arrival) != num_stops:
         raise ValidationError(
             f"lambda_arrival length ({len(lambda_arrival)}) "
-            f"must match num_stops ({num_stops})"
+            f"must be num_stops = {num_stops}"
         )
-    
+
     if len(lambda_exit) != num_stops:
         raise ValidationError(
             f"lambda_exit length ({len(lambda_exit)}) "
-            f"must match num_stops ({num_stops})"
+            f"must be num_stops = {num_stops}"
         )
     
     return config
