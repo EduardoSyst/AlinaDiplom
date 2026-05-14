@@ -333,8 +333,8 @@ def plot_planned_vs_actual_flow(
     
     # Фактические значения (из симуляции)
     stop_stats = metrics['stop_statistics']
-    actual_arrival = stop_stats['passengers_arrived']
-    actual_exit = stop_stats['passengers_exited']
+    actual_arrival = stop_stats['passengers_arrived'][:-1]
+    actual_exit = stop_stats['passengers_exited'][:-1]
     
     simulation_time = config['simulation']['simulation_time']
     
@@ -346,7 +346,7 @@ def plot_planned_vs_actual_flow(
                  fontsize=16, fontweight='bold')
     
     # График 1: Прибытие пассажиров
-    x = np.arange(len(stops))
+    x = np.arange(len(planned_arrival))
     width = 0.35
     
     ax1.bar(x - width/2, planned_arrival_norm, width, label='Плановое прибытие', 
@@ -358,7 +358,7 @@ def plot_planned_vs_actual_flow(
     ax1.set_ylabel('Количество пассажиров', fontsize=11)
     ax1.set_title('Прибытие пассажиров', fontsize=13, fontweight='bold')
     ax1.set_xticks(x)
-    ax1.set_xticklabels(stops)
+    ax1.set_xticklabels(stops[:-1])
     ax1.legend()
     ax1.grid(True, alpha=0.3, axis='y')
     
@@ -370,7 +370,7 @@ def plot_planned_vs_actual_flow(
     ax2.set_ylabel('Количество пассажиров', fontsize=11)
     ax2.set_title('Выход пассажиров', fontsize=13, fontweight='bold')
     ax2.set_xticks(x)
-    ax2.set_xticklabels(stops)
+    ax2.set_xticklabels(stops[:-1])
     ax2.legend()
     ax2.grid(True, alpha=0.3, axis='y')
     
