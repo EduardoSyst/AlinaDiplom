@@ -5,7 +5,7 @@
     "optimization": {
       "min_intensity": 2,
       "max_intensity": 20,
-      "step": 0.5,
+      "step": 2.0,
       "num_runs": 10
     },
     "debug_mode": false,
@@ -14,11 +14,11 @@
   "route": {
     "num_stops": 10,
     "travel_time_between_stops": 3,
-    "bus_capacity": 16
+    "bus_capacity": 30
   },
   "passenger_flow": {
-    "lambda_arrival": [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
-    "lambda_exit": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 8.0]
+    "lambda_arrival": [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
+    "lambda_exit": [2.0, 3.0, 4.0, 5.0, 10.0, 10.0, 8.0, 9.0, 10.0]
   },
   "economics": {
     "ticket_price": 30.0,

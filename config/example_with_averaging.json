@@ -14,7 +14,7 @@
   "route": {
     "num_stops": 10,
     "travel_time_between_stops": 3,
-    "bus_capacity": 20
+    "bus_capacity": 30
   },
   "passenger_flow": {
     "lambda_arrival": [0.8, 1.2, 1.5, 1.3, 1.0, 0.9, 0.8, 0.7, 0.5],
