@@ -191,9 +191,13 @@ def plot_passenger_flow_analysis(
     
     plt.figure(figsize=(14, 7))
     
+    # Pad arrays to match num_stops if needed
+    arrival_padded = list(lambda_arrival) + [0.0] * (num_stops - len(lambda_arrival))
+    exit_padded = list(lambda_exit) + [0.0] * (num_stops - len(lambda_exit))
+    
     plt.bar(
         [s - 0.2 for s in stops],
-        lambda_arrival,
+        arrival_padded,
         width=0.4,
         label='Прибытие пассажиров',
         alpha=0.7,
@@ -201,7 +205,7 @@ def plot_passenger_flow_analysis(
     )
     plt.bar(
         [s + 0.2 for s in stops],
-        lambda_exit,
+        exit_padded,
         width=0.4,
         label='Выход пассажиров',
         alpha=0.7,
@@ -314,7 +318,7 @@ def plot_planned_vs_actual_flow(
     save_path: str = None
 ):
     """
-    Сравнение ПЛАНОВОГО (из конфигурации) и ФАКТИЧЕСКОГО пассажиропотока
+    ФАКТИЧЕСКИЙ пассажиропоток (плановый выход удален - некорректен)
     
     Args:
         metrics: метрики симуляции
@@ -324,46 +328,25 @@ def plot_planned_vs_actual_flow(
     num_stops = config['route']['num_stops']
     stops = list(range(1, num_stops + 1))
     
-    # Плановые значения (из конфигурации)
+    # Плановые значения (из конфигурации) - только прибытие
     planned_arrival = config['passenger_flow']['lambda_arrival']
-    planned_exit = config['passenger_flow']['lambda_exit']
     
     # Фактические значения (из симуляции)
     stop_stats = metrics['stop_statistics']
-    actual_arrival = stop_stats['passengers_arrived']
-    actual_exit = stop_stats['passengers_exited']
+    actual_arrival = stop_stats['passengers_arrived'][:-1]
+    actual_exit = stop_stats['passengers_exited'][:-1]
     
-    # Расчёт КОРРЕКТНОГО планового выхода
     simulation_time = config['simulation']['simulation_time']
-    planned_exit_corrected = [0] * num_stops
-    
-    # Общее количество пассажиров, прибывших на остановки 1..i
-    total_arrived_so_far = [0] * num_stops
-    if num_stops > 0:
-        total_arrived_so_far[0] = planned_arrival[0] * simulation_time
-        for i in range(1, num_stops):
-            total_arrived_so_far[i] = total_arrived_so_far[i-1] + planned_arrival[i] * simulation_time
-    
-    # Общее количество пассажиров, вышедших на остановках 1..i-1
-    total_exited_so_far = [0] * num_stops
-    for i in range(1, num_stops):
-        total_exited_so_far[i] = total_exited_so_far[i-1] + actual_exit[i-1]
-    
-    # Плановый выход = min(общее прибытие - общее выход, теоретический потенциал)
-    for i in range(num_stops):
-        theoretical_capacity = planned_exit[i] * simulation_time
-        max_possible = total_arrived_so_far[i] - total_exited_so_far[i]
-        planned_exit_corrected[i] = min(max_possible, theoretical_capacity)
     
     # Нормализация для визуализации
     planned_arrival_norm = [lam * simulation_time for lam in planned_arrival]
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
-    fig.suptitle('Сравнение планового и фактического пассажиропотока', 
+    fig.suptitle('Фактический пассажиропоток', 
                  fontsize=16, fontweight='bold')
     
     # График 1: Прибытие пассажиров
-    x = np.arange(len(stops))
+    x = np.arange(len(planned_arrival))
     width = 0.35
     
     ax1.bar(x - width/2, planned_arrival_norm, width, label='Плановое прибытие', 
@@ -375,13 +358,11 @@ def plot_planned_vs_actual_flow(
     ax1.set_ylabel('Количество пассажиров', fontsize=11)
     ax1.set_title('Прибытие пассажиров', fontsize=13, fontweight='bold')
     ax1.set_xticks(x)
-    ax1.set_xticklabels(stops)
+    ax1.set_xticklabels(stops[:-1])
     ax1.legend()
     ax1.grid(True, alpha=0.3, axis='y')
     
     # График 2: Выход пассажиров
-    ax2.bar(x - width/2, planned_exit_corrected, width, label='Плановый выход', 
-            alpha=0.7, color='lightcoral')
     ax2.bar(x + width/2, actual_exit, width, label='Фактический выход', 
             alpha=0.7, color='darkred')
     
@@ -389,7 +370,7 @@ def plot_planned_vs_actual_flow(
     ax2.set_ylabel('Количество пассажиров', fontsize=11)
     ax2.set_title('Выход пассажиров', fontsize=13, fontweight='bold')
     ax2.set_xticks(x)
-    ax2.set_xticklabels(stops)
+    ax2.set_xticklabels(stops[:-1])
     ax2.legend()
     ax2.grid(True, alpha=0.3, axis='y')
     

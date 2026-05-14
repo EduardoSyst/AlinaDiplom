@@ -64,20 +64,20 @@ def print_optimization_results(
     optimal_intensity, optimal_metrics = optimal_result
     
     print("\n")
-    print("╔" + "═" * 68 + "╗")
-    print("║" + " " * 20 + "РЕЗУЛЬТАТЫ ОПТИМИЗАЦИИ" + " " * 24 + "║")
-    print("╚" + "═" * 68 + "╝")
+    print("+" + "=" * 68 + "+")
+    print("|" + " " * 20 + "OPTIMIZATION RESULTS" + " " * 25 + "|")
+    print("+" + "=" * 68 + "+")
     print()
     
-    print("🎯 ОПТИМАЛЬНЫЕ ПАРАМЕТРЫ:")
-    print(f"   • Интенсивность выпуска: {optimal_intensity:.2f} автобусов/час")
-    print(f"   • Интервал между автобусами: {60.0 / optimal_intensity:.2f} минут")
+    print("[INFO] OPTIMAL PARAMETERS:")
+    print(f"   * Bus release intensity: {optimal_intensity:.2f} buses/hour")
+    print(f"   * Interval between buses: {60.0 / optimal_intensity:.2f} minutes")
     print()
     
     print_metrics(optimal_metrics, prefix="   ")
     
     # Вывод топ-5 результатов
-    print("\n📊 ТОП-5 ЛУЧШИХ ВАРИАНТОВ:")
+    print("\n[TOP] TOP-5 BEST OPTIONS:")
     print("   " + "-" * 80)
     
     # Проверяем, есть ли стандартные отклонения
@@ -85,11 +85,11 @@ def print_optimization_results(
     
     if has_std:
         print("   {:>8} {:>15} {:>12} {:>10} {:>12}".format(
-            "Интенс.", "Прибыль (±σ)", "Автобусы", "Пассажиры", "Потери (%)"
+            "Intens.", "Profit (±σ)", "Buses", "Passengers", "Losses (%)"
         ))
     else:
         print("   {:>8} {:>12} {:>10} {:>10} {:>12}".format(
-            "Интенс.", "Прибыль", "Автобусы", "Пассажиры", "Потери (%)"
+            "Intens.", "Profit", "Buses", "Passengers", "Losses (%)"
         ))
     
     print("   " + "-" * 80)
@@ -121,50 +121,49 @@ def print_optimization_results(
     print("   " + "-" * 80)
     
     # Анализ тенденций
-    print("\n📈 АНАЛИЗ ТЕНДЕНЦИЙ:")
+    print("\n[TREND] TREND ANALYSIS:")
     
     # Минимальная и максимальная прибыль
     min_profit_result = min(all_results, key=lambda x: x[1]['profit'])
     max_profit_result = max(all_results, key=lambda x: x[1]['profit'])
     
-    print(f"   • Максимальная прибыль: {max_profit_result[1]['profit']:,.0f} руб. "
-          f"(интенсивность: {max_profit_result[0]:.2f})")
-    print(f"   • Минимальная прибыль: {min_profit_result[1]['profit']:,.0f} руб. "
-          f"(интенсивность: {min_profit_result[0]:.2f})")
+    print(f"   * Max profit: {max_profit_result[1]['profit']:,.0f} RUB "
+          f"(intensity: {max_profit_result[0]:.2f})")
+    print(f"   * Min profit: {min_profit_result[1]['profit']:,.0f} RUB "
+          f"(intensity: {min_profit_result[0]:.2f})")
     
     # Средние значения
     avg_profit = sum(m['profit'] for _, m in all_results) / len(all_results)
-    print(f"   • Средняя прибыль: {avg_profit:,.0f} руб.")
+    print(f"   * Average profit: {avg_profit:,.0f} RUB")
     
     # Если есть несколько прогонов, показываем стабильность
     if has_std:
         avg_profit_std = sum(m.get('profit_std', 0) for _, m in all_results) / len(all_results)
-        print(f"   • Среднее отклонение прибыли: {avg_profit_std:,.0f} руб.")
-        print(f"   • Стабильность результатов: {'Высокая' if avg_profit_std < avg_profit * 0.1 else 'Средняя' if avg_profit_std < avg_profit * 0.25 else 'Низкая'}")
+        print(f"   * Average profit std: {avg_profit_std:,.0f} RUB")
+        stability = "High" if avg_profit_std < avg_profit * 0.1 else "Medium" if avg_profit_std < avg_profit * 0.25 else "Low"
+        print(f"   * Result stability: {stability}")
     
     print()
 
 
 def print_stop_analysis(metrics: Dict[str, Any], config: Dict[str, Any], prefix: str = ""):
     """
-    Вывод анализа по остановкам
+    Stop-by-stop analysis output
     
     Args:
-        metrics: метрики симуляции
-        config: конфигурация
-        prefix: префикс для вывода
+        metrics: simulation metrics
+        config: configuration
+        prefix: output prefix
     """
     num_stops = config['route']['num_stops']
     stop_stats = metrics['stop_statistics']
     
     print(f"\n{prefix}{'='*60}")
-    print(f"{prefix}АНАЛИЗ ПО ОСТАНОВКАМ")
+    print(f"{prefix}STOP ANALYSIS")
     print(f"{prefix}{'='*60}")
-    print(f"{prefix}{'Ост.':<6} {'Прибыло':<10} {'Вошло':<10} {'Вышло':<10} {'Ушло':<10} {'Потери %':<10} {'Ожидание':<10}")
+    print(f"{prefix}{'Stop':<6} {'Arrived':<10} {'Boarded':<10} {'Exited':<10} {'Lost':<10} {'Loss %':<10} {'Wait':<10}")
     print(f"{prefix}{'-'*60}")
 
-    print_stop_analysis(optimal_metrics, config, prefix="   ")
-    
     total_arrived = 0
     total_boarded = 0
     total_exited = 0
@@ -187,5 +186,5 @@ def print_stop_analysis(metrics: Dict[str, Any], config: Dict[str, Any], prefix:
         print(f"{prefix}{i+1:<6} {arrived:<10} {boarded:<10} {exited:<10} {lost:<10} {loss_pct:<9.1f}% {wait:<10.1f}")
     
     print(f"{prefix}{'-'*60}")
-    print(f"{prefix}{'ИТОГО':<6} {total_arrived:<10} {total_boarded:<10} {total_exited:<10} {total_lost:<10}")
+    print(f"{prefix}{'TOTAL':<6} {total_arrived:<10} {total_boarded:<10} {total_exited:<10} {total_lost:<10}")
     print(f"{prefix}{'='*60}\n")

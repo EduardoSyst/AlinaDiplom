@@ -110,16 +110,16 @@ def load_config(config_path: str) -> Dict[str, Any]:
     lambda_arrival = config['passenger_flow']['lambda_arrival']
     lambda_exit = config['passenger_flow']['lambda_exit']
     
-    if len(lambda_arrival) != num_stops:
+    if len(lambda_arrival) != num_stops - 1:
         raise ValidationError(
             f"lambda_arrival length ({len(lambda_arrival)}) "
-            f"must match num_stops ({num_stops})"
+            f"must be num_stops - 1 = {num_stops - 1}"
         )
-    
-    if len(lambda_exit) != num_stops:
+
+    if len(lambda_exit) != num_stops - 1:
         raise ValidationError(
             f"lambda_exit length ({len(lambda_exit)}) "
-            f"must match num_stops ({num_stops})"
+            f"must be num_stops - 1 = {num_stops - 1}"
         )
     
     return config

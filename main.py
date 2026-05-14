@@ -64,28 +64,29 @@ def parse_arguments():
 
 def print_welcome():
     """Вывод приветственного сообщения"""
-    print("\n" + "█" * 70)
-    print("█" + " " * 68 + "█")
-    print("█" + " " * 15 + "BUS SIMULATION MODEL" + " " * 35 + "█")
-    print("█" + " " * 12 + "Имитационная модель движения автобусов" + " " * 20 + "█")
-    print("█" + " " * 68 + "█")
-    print("█" * 70 + "\n")
+    border = "#" * 70
+    print("\n" + border)
+    print("#" + " " * 68 + "#")
+    print("#" + " " * 15 + "BUS SIMULATION MODEL" + " " * 35 + "#")
+    print("#" + " " * 12 + "Имитационная модель движения автобусов" + " " * 20 + "#")
+    print("#" + " " * 68 + "#")
+    print(border + "\n")
 
 
 def print_config_summary(config: dict):
     """Вывод краткой информации о конфигурации"""
-    print("📋 ИНФОРМАЦИЯ О КОНФИГУРАЦИИ:")
-    print(f"   • Количество остановок: {config['route']['num_stops']}")
-    print(f"   • Вместимость автобуса: {config['route']['bus_capacity']} пассажиров")
-    print(f"   • Время между остановками: {config['route']['travel_time_between_stops']} минут")
-    print(f"   • Время моделирования: {config['simulation']['simulation_time']} минут")
-    print(f"   • Макс. время ожидания: {config['simulation']['max_wait_time']} минут")
-    print(f"   • Стоимость билета: {config['economics']['ticket_price']} руб.")
-    print(f"   • Стоимость рейса: {config['economics']['bus_cost_per_route']} руб.")
-    print(f"   • Стд. откл. интервала выпуска: {config['bus_release']['release_time_std']} минут")
-    print(f"   • Диапазон оптимизации: {config['simulation']['optimization']['min_intensity']} - "
-          f"{config['simulation']['optimization']['max_intensity']} автобусов/час")
-    print(f"   • Шаг оптимизации: {config['simulation']['optimization']['step']} автобусов/час")
+    print("[INFO] CONFIGURATION SUMMARY:")
+    print(f"   * Number of stops: {config['route']['num_stops']}")
+    print(f"   * Bus capacity: {config['route']['bus_capacity']} passengers")
+    print(f"   * Travel time between stops: {config['route']['travel_time_between_stops']} minutes")
+    print(f"   * Simulation time: {config['simulation']['simulation_time']} minutes")
+    print(f"   * Max wait time: {config['simulation']['max_wait_time']} minutes")
+    print(f"   * Ticket price: {config['economics']['ticket_price']} RUB")
+    print(f"   * Route cost: {config['economics']['bus_cost_per_route']} RUB")
+    print(f"   * Release interval std: {config['bus_release']['release_time_std']} minutes")
+    print(f"   * Optimization range: {config['simulation']['optimization']['min_intensity']} - "
+          f"{config['simulation']['optimization']['max_intensity']} buses/hour")
+    print(f"   * Optimization step: {config['simulation']['optimization']['step']} buses/hour")
     
     # Новый параметр
     num_runs = config['simulation']['optimization'].get('num_runs', 1)
@@ -105,12 +106,12 @@ def main():
     print_welcome()
     
     # Загрузка конфигурации
-    print("⏳ Загрузка конфигурации...")
+    print("[START] Loading configuration...")
     try:
         config = load_config(args.config)
-        print(f"✅ Конфигурация загружена: {args.config}\n")
+        print(f"[OK] Configuration loaded: {args.config}\n")
     except Exception as e:
-        print(f"❌ Ошибка загрузки конфигурации: {e}")
+        print(f"[ERROR] Configuration loading error: {e}")
         return
     
     # Настройка логгера
@@ -133,12 +134,12 @@ def main():
     print_config_summary(config)
     
     # Запуск оптимизации
-    print("🚀 ЗАПУСК ОПТИМИЗАЦИИ\n")
+    print("[START] STARTING OPTIMIZATION\n")
     
     try:
         optimal_result, all_results = optimize_bus_intensity(config)
     except Exception as e:
-        print(f"❌ Ошибка во время оптимизации: {e}")
+        print(f"[ERROR] Optimization error: {e}")
         import traceback
         traceback.print_exc()
         return
@@ -150,25 +151,25 @@ def main():
     
     # Сохранение результатов
     if not args.no_save:
-        print("\n💾 Сохранение результатов...")
+        print("\n[SAVE] Saving results...")
         results_dir = os.path.join(args.output, 'results')
         save_optimization_results(optimal_result, all_results, config, results_dir)
     
     # Создание графиков
     if not args.no_plots:
-        print("\n📊 Создание графиков...")
+        print("\n[PLOTS] Creating plots...")
         plots_dir = os.path.join(args.output, 'plots')
         save_all_plots(optimal_result, all_results, config, plots_dir)
     
     # Финальное сообщение
-    print("\n" + "█" * 70)
-    print("█" + " " * 68 + "█")
-    print("█" + " " * 20 + "ОПТИМИЗАЦИЯ ЗАВЕРШЕНА" + " " * 27 + "█")
-    print("█" + " " * 68 + "█")
-    print("█" * 70 + "\n")
+    print("\n" + "#" * 70)
+    print("#" + " " * 68 + "#")
+    print("#" + " " * 20 + "OPTIMIZATION COMPLETED" + " " * 24 + "#")
+    print("#" + " " * 68 + "#")
+    print("#" * 70 + "\n")
     
-    print(f"📁 Результаты сохранены в: {args.output}")
-    print(f"📄 Логи сохранены в: {log_file}\n")
+    print(f"[INFO] Results saved to: {args.output}")
+    print(f"[LOGS] Logs saved to: {log_file}\n")
 
 
 if __name__ == "__main__":

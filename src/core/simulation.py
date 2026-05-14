@@ -47,10 +47,12 @@ class Simulation:
         # Остановки
         self.stops: List[Stop] = []
         for i in range(self.num_stops):
+            arrival_lambda = config['passenger_flow']['lambda_arrival'][i] if i < len(config['passenger_flow']['lambda_arrival']) else 0.0
+            exit_lambda = config['passenger_flow']['lambda_exit'][i] if i < len(config['passenger_flow']['lambda_exit']) else 0.0
             stop = Stop(
                 stop_id=i + 1,
-                lambda_arrival=config['passenger_flow']['lambda_arrival'][i],
-                lambda_exit=config['passenger_flow']['lambda_exit'][i]
+                lambda_arrival=arrival_lambda,
+                lambda_exit=exit_lambda
             )
             self.stops.append(stop)
         
@@ -345,8 +347,9 @@ class Simulation:
             stop.passengers_waiting = stop.passengers_waiting[boarding_count:]
             stop.passengers_served += boarding_count
         
-        # Сохранение загрузки для метрик
+        # Сохранение загрузки для метрик (средняя за рейс)
         self.metrics['bus_loads'].append(bus.get_current_load())
+        bus.load_history.append((self.current_time, bus.get_current_load()))
         
         if self.debug_mode:
             self.logger.debug(
@@ -398,6 +401,10 @@ class Simulation:
         if self.metrics['bus_loads']:
             self.metrics['avg_bus_load'] = np.mean(self.metrics['bus_loads'])
             self.metrics['std_bus_load'] = np.std(self.metrics['bus_loads'])
+            for bus in self.buses.values():
+                if bus.completed and bus.load_history:
+                    loads = [entry[1] for entry in bus.load_history]
+                    bus.avg_load = np.mean(loads)
         else:
             self.metrics['avg_bus_load'] = 0
             self.metrics['std_bus_load'] = 0
