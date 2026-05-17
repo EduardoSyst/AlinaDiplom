@@ -298,9 +298,25 @@ class Simulation:
                 f"Waiting: {stop.get_waiting_count()}"
             )
         
-        # 1. ВЫХОД ПАССАЖИРОВ: случайное количество по пуассону
+        # 1. ВЫХОД ПАССАЖИРОВ: на последней остановке все обязаны выйти, на других - по lambda_exit
         exiting_count = 0
-        if stop.lambda_exit > 0 and bus.get_current_load() > 0:
+        if stop_id == self.num_stops:
+            # На последней остановке все пассажиры выходят
+            if bus.get_current_load() > 0:
+                exiting_count = bus.get_current_load()
+                exited_passengers = bus.remove_passengers(exiting_count)
+                for passenger in exited_passengers:
+                    passenger.served = True
+                    passenger.exit_stop = stop_id
+                    
+                    if passenger.boarding_time is not None:
+                        trip_duration = self.current_time - passenger.boarding_time
+                        self.metrics['trip_durations'].append(trip_duration)
+                        self.metrics['total_passengers_served'] += 1
+                
+                # Сбор статистики: пассажиры вышли (НОВОЕ)
+                self.metrics['stop_statistics']['passengers_exited'][stop_index] += exiting_count
+        elif stop.lambda_exit > 0 and bus.get_current_load() > 0:
             exiting_count = min(
                 poisson(stop.lambda_exit),
                 bus.get_current_load()

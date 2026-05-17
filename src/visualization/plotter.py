@@ -333,8 +333,8 @@ def plot_planned_vs_actual_flow(
     
     # Фактические значения (из симуляции)
     stop_stats = metrics['stop_statistics']
-    actual_arrival = stop_stats['passengers_arrived'][:-1]
-    actual_exit = stop_stats['passengers_exited'][:-1]
+    actual_arrival = stop_stats['passengers_arrived']
+    actual_exit = stop_stats['passengers_exited']
     
     simulation_time = config['simulation']['simulation_time']
     
@@ -346,31 +346,35 @@ def plot_planned_vs_actual_flow(
                  fontsize=16, fontweight='bold')
     
     # График 1: Прибытие пассажиров
-    x = np.arange(len(planned_arrival))
+    x_arrival = np.arange(len(actual_arrival))
     width = 0.35
     
-    ax1.bar(x - width/2, planned_arrival_norm, width, label='Плановое прибытие', 
-            alpha=0.7, color='lightblue')
-    ax1.bar(x + width/2, actual_arrival, width, label='Фактическое прибытие', 
+    ax1.bar(x_arrival - width/2, actual_arrival, width, label='Фактическое прибытие', 
             alpha=0.7, color='darkblue')
+    
+    if len(planned_arrival_norm) >= len(actual_arrival):
+        ax1.bar(x_arrival - width/2, planned_arrival_norm, width, label='Плановое прибытие', 
+                alpha=0.4, color='lightblue')
     
     ax1.set_xlabel('Номер остановки', fontsize=11)
     ax1.set_ylabel('Количество пассажиров', fontsize=11)
     ax1.set_title('Прибытие пассажиров', fontsize=13, fontweight='bold')
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(stops[:-1])
+    ax1.set_xticks(x_arrival)
+    ax1.set_xticklabels(stops)
     ax1.legend()
     ax1.grid(True, alpha=0.3, axis='y')
     
     # График 2: Выход пассажиров
-    ax2.bar(x + width/2, actual_exit, width, label='Фактический выход', 
+    x_exit = np.arange(len(actual_exit))
+    
+    ax2.bar(x_exit + width/2, actual_exit, width, label='Фактический выход', 
             alpha=0.7, color='darkred')
     
     ax2.set_xlabel('Номер остановки', fontsize=11)
     ax2.set_ylabel('Количество пассажиров', fontsize=11)
     ax2.set_title('Выход пассажиров', fontsize=13, fontweight='bold')
-    ax2.set_xticks(x)
-    ax2.set_xticklabels(stops[:-1])
+    ax2.set_xticks(x_exit)
+    ax2.set_xticklabels(stops)
     ax2.legend()
     ax2.grid(True, alpha=0.3, axis='y')
     
